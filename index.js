@@ -20,15 +20,27 @@ var PPromise = (function () {
 
       return new Promise(function (resolveFromPromise, rejectFromPromise) {
         resolveHandler = function (result) { resolveFromPromise(resolve(result)) }
-        if (wasResolved) { resolveHandler(resolvedValue) }
+        if (wasResolved) {
+          if (resolvedValue instanceof Promise) {
+            resolvedValue.then(function (res) { resolveHandler(res) })
+          } else {
+            resolveHandler(resolvedValue)
+          }
+        }
       })
     }
 
     var resolve = function (result) {
       if (wasResolved || wasRejected) { return }
-      if (resolveHandler) { return resolveHandler(result) }
       wasResolved = true
       resolvedValue = result
+      if (resolveHandler) {
+        if (result instanceof Promise) {
+          result.then(function (res) { resolveHandler(res) })
+        } else {
+          resolveHandler(result)
+        }
+      }
     }
 
     var reject = function () {
