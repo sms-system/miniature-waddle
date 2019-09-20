@@ -48,11 +48,12 @@ var PPromise = (function () {
       wasRejected = true
     }
 
-    try {
-      fn(resolve, reject)
-    } catch (err) {
-      reject(err)
-    }
+    try { fn(resolve, reject) }
+    catch (err) { reject(err) }
+  }
+
+  Promise.resolve = function (value) {
+    return new Promise(function (resolve) { resolve(value) })
   }
 
   return Promise
