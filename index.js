@@ -18,18 +18,17 @@ var PPromise = (function () {
         resolve = function () { return resolvedValue }
       }
 
-      resolveHandler = resolve
-      rejecteHandler = reject
-
-      if (wasResolved) {
-        return resolve(resolvedValue)
-      }
+      return new Promise(function (resolveFromPromise, rejectFromPromise) {
+        resolveHandler = function (result) { resolveFromPromise(resolve(result)) }
+        if (wasResolved) { resolveHandler(resolvedValue) }
+      })
     }
 
     var resolve = function (result) {
       if (wasResolved || wasRejected) { return }
+      if (resolveHandler) { return resolveHandler(result) }
       wasResolved = true
-      if (resolveHandler) { resolveHandler(result) }
+      resolvedValue = result
     }
 
     var reject = function () {
