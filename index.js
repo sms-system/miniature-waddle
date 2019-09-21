@@ -1,6 +1,16 @@
 'use strict'
 
 var PPromise = (function () {
+  var STATES = { PENDING: 0, RESOLVED: 1, REJECTED: 2 }
+
+  function onResolve (promise, callback) {
+    promise.then(function (res) { callback(res) })
+  }
+
+  function isPromise (val) {
+    return val instanceof Promise
+  }
+
   var Promise = function (fn) {
     if (!(this instanceof Promise)) {
       throw new Error('Missed "new" operator')
@@ -9,43 +19,49 @@ var PPromise = (function () {
       throw new Error('Promise argument must be a function')
     }
 
-    var wasResolved = false, wasRejected = false
-    var resolveHandler, rejecteHandler
-    var resolvedValue
+    var state = STATES.PENDING, value
+    var resolveHandler, rejectHandler
 
-    this.then = function (resolve, reject) {
-      if (typeof resolve !== 'function') {
-        resolve = function () { return resolvedValue }
+    this.then = function (thenResolver, thenRejector) {
+      if (typeof thenResolver !== 'function') {
+        thenResolver = function () { return value }
+      }
+      if (typeof thenRejector !== 'function') {
+        thenRejector = function () { return value }
       }
 
-      return new Promise(function (resolveFromPromise, rejectFromPromise) {
-        resolveHandler = function (result) { resolveFromPromise(resolve(result)) }
-        if (wasResolved) {
-          if (resolvedValue instanceof Promise) {
-            resolvedValue.then(function (res) { resolveHandler(res) })
-          } else {
-            resolveHandler(resolvedValue)
-          }
+      return new Promise(function (resolve) {
+        resolveHandler = function (result) { resolve(thenResolver(result)) }
+        rejectHandler = function (result) { resolve(thenRejector(result)) }
+
+        if (state === STATES.RESOLVED) {
+          if (isPromise(value)) { onResolve(value, resolveHandler) }
+          else { resolveHandler(value) }
+        }
+
+        if (state === STATES.REJECTED) {
+          rejectHandler(value)
         }
       })
     }
 
     var resolve = function (result) {
-      if (wasResolved || wasRejected) { return }
-      wasResolved = true
-      resolvedValue = result
+      if (state !== STATES.PENDING) { return }
+      state = STATES.RESOLVED
+      value = result
       if (resolveHandler) {
-        if (result instanceof Promise) {
-          result.then(function (res) { resolveHandler(res) })
-        } else {
-          resolveHandler(result)
-        }
+        if (isPromise(result)) { onResolve(result, resolveHandler) }
+        else { resolveHandler(result) }
       }
     }
 
-    var reject = function () {
-      if (wasResolved || wasRejected) { return }
-      wasRejected = true
+    var reject = function (error) {
+      if (state !== STATES.PENDING) { return }
+      state = STATES.REJECTED
+      value = error
+      if (rejectHandler) {
+        rejectHandler(error)
+      }
     }
 
     try { fn(resolve, reject) }
@@ -54,6 +70,10 @@ var PPromise = (function () {
 
   Promise.resolve = function (value) {
     return new Promise(function (resolve) { resolve(value) })
+  }
+
+  Promise.reject = function (value) {
+    return new Promise(function (_, reject) { reject(value) })
   }
 
   return Promise
