@@ -34,18 +34,18 @@ var PPromise = (function () {
       }
 
       return new Promise(function (resolve, reject) {
-        resolveHandler = function (result) {
+        resolveHandler = onFullfilled(function (result) {
           try {
             var thenResult = thenResolver(result)
             resolve(thenResult)
           } catch (error) {
             reject(error)
           }
-        }
-        rejectHandler = function (result) {
+        })
+        rejectHandler = onFullfilled(function (result) {
           if (typeof thenRejector !== 'function') { reject(result) }
           else { resolve(thenRejector(result)) }
-        }
+        })
 
         if (state === STATES.RESOLVED) {
           if (isPromise(value)) { onResolve(value, resolveHandler, rejectHandler) }
