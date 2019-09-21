@@ -45,6 +45,8 @@ var PPromise = (function () {
       })
     }
 
+    this.catch = function (thenRejector) { return this.then(null, thenRejector) }
+
     var resolve = function (result) {
       if (state !== STATES.PENDING) { return }
       state = STATES.RESOLVED
