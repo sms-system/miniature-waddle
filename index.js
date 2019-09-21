@@ -11,6 +11,12 @@ var PPromise = (function () {
     return val instanceof Promise
   }
 
+  function onFullfilled (fn) {
+    return function (val) {
+      setTimeout(() => fn(val), 0)
+    }
+  }
+
   var Promise = function (fn) {
     if (!(this instanceof Promise)) {
       throw new Error('Missed "new" operator')
@@ -51,7 +57,7 @@ var PPromise = (function () {
 
     this.catch = function (thenRejector) { return this.then(null, thenRejector) }
 
-    var resolve = function (result) {
+    var resolve = onFullfilled(function (result) {
       if (state !== STATES.PENDING) { return }
       state = STATES.RESOLVED
       value = result
@@ -59,14 +65,14 @@ var PPromise = (function () {
         if (isPromise(result)) { onResolve(result, resolveHandler, rejectHandler) }
         else { resolveHandler(result) }
       }
-    }
+    })
 
-    var reject = function (error) {
+    var reject = onFullfilled(function (error) {
       if (state !== STATES.PENDING) { return }
       state = STATES.REJECTED
       value = error
       if (rejectHandler) { rejectHandler(error) }
-    }
+    })
 
     try { fn(resolve, reject) }
     catch (err) { reject(err) }
