@@ -13,7 +13,7 @@ var PPromise = (function () {
 
   function onFullfilled (fn) {
     return function (val) {
-      setTimeout(() => fn(val), 0)
+      setTimeout(function () { fn(val) }, 0)
     }
   }
 
