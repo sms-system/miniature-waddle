@@ -3,12 +3,22 @@
 var PPromise = (function () {
   var STATES = { PENDING: 0, RESOLVED: 1, REJECTED: 2 }
 
-  function onResolve (promise, onSuccess, onError) {
-    promise.then(onSuccess, onError)
-  }
-
-  function isPromise (val) {
-    return val instanceof Promise
+  function getThenable (val) {
+    if (typeof val !== 'object' && typeof val !== 'function') {
+      return { isThenable: false }
+    }
+    try {
+      var then = val.then
+      return typeof then === 'function' ?
+        { isThenable: true, value: then } :
+        { isThenable: false }
+    } catch (err) {
+      return {
+        value: err,
+        isThenable: true,
+        isError: true
+      }
+    }
   }
 
   function onFullfilled (fn) {
@@ -17,19 +27,41 @@ var PPromise = (function () {
     }
   }
 
+  function resoveThenable ({ self, then, value, deferred }) {
+    then.call(
+      value,
+      function (value) {
+        var thenable = getThenable(value)
+        applyResolver (deferred, thenable, value, self)
+      },
+      deferred.reject
+    )
+  }
+
+  function applyResolver (deferred, thenable, result, currentInstance) {
+    if (thenable.isThenable) {
+      if (result === currentInstance) {
+        deferred.reject(new TypeError('Chaining cycle detected'))
+      } else if (thenable.isError) {
+        deferred.reject(thenable.value)
+      } else {
+        resoveThenable({
+          self: currentInstance,
+          then: thenable.value,
+          value: result,
+          deferred
+        })
+      }
+    } else {
+      deferred.resolve(result)
+    }
+  }
+
   function resolveAll (deferredHandlers, result, currentInstance) {
-    var isItPromise = isPromise(result)
+    var thenable = getThenable(result)
     while (deferredHandlers.length) {
       var deferred = deferredHandlers.shift()
-      if (isItPromise) {
-        if (result === currentInstance) {
-          deferred.reject(new TypeError('Chaining cycle detected'))
-        } else {
-          onResolve(result, deferred.resolve, deferred.reject)
-        }
-      } else {
-        deferred.resolve(result)
-      }
+      applyResolver(deferred, thenable, result, currentInstance)
     }
   }
 
