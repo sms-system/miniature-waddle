@@ -31,16 +31,25 @@ var PPromise = (function () {
   }
 
   function resoveThenable ({ self, then, thenable, deferred }) {
+    var isFullfilled = false
     try {
       then.call(
         thenable,
         function (value) {
+          if (isFullfilled) { return }
+          isFullfilled = true
           var thenable = getThenable(value)
           applyResolver (deferred, thenable, value, self)
         },
-        deferred.reject
+        function (value) {
+          if (isFullfilled) { return }
+          isFullfilled = true
+          deferred.reject(value)
+        }
       )
     } catch (err) {
+      if (isFullfilled) { return }
+      isFullfilled = true
       deferred.reject(err)
     }
   }
