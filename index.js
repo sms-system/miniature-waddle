@@ -17,6 +17,29 @@ var PPromise = (function () {
     }
   }
 
+  function resolveAll (deferredHandlers, result, currentInstance) {
+    var isItPromise = isPromise(result)
+    while (deferredHandlers.length) {
+      var deferred = deferredHandlers.shift()
+      if (isItPromise) {
+        if (result === currentInstance) {
+          deferred.reject(new TypeError('Chaining cycle detected'))
+        } else {
+          onResolve(result, deferred.resolve, deferred.reject)
+        }
+      } else {
+        deferred.resolve(result)
+      }
+    }
+  }
+
+  function rejectAll (deferredHandlers, result) {
+    while (deferredHandlers.length) {
+      var deferred = deferredHandlers.shift()
+      deferred.reject(result)
+    }
+  }
+
   var Promise = function (fn) {
     if (!(this instanceof Promise)) {
       throw new Error('Missed "new" operator')
@@ -27,6 +50,7 @@ var PPromise = (function () {
 
     var state = STATES.PENDING, value
     var deferredHandlers = []
+    var self = this
 
     this.then = function (thenResolver, thenRejector) {
       if (typeof thenResolver !== 'function') {
@@ -52,21 +76,13 @@ var PPromise = (function () {
             }
           })
         })
-        if (state === STATES.PENDING) { return }
 
-        while (deferredHandlers.length) {
-          var deferred = deferredHandlers.shift()
-          if (state === STATES.RESOLVED) {
-            if (isPromise(value)) {
-              onResolve(value, deferred.resolve, deferred.reject)
-            }
-            else {
-              deferred.resolve(value)
-            }
-          }
-          if (state === STATES.REJECTED) {
-            deferred.reject(value)
-          }
+        if (state === STATES.RESOLVED) {
+          resolveAll(deferredHandlers, value, self)
+        }
+
+        else if (state === STATES.REJECTED) {
+          rejectAll(deferredHandlers, value)
         }
       })
     }
@@ -77,25 +93,14 @@ var PPromise = (function () {
       if (state !== STATES.PENDING) { return }
       state = STATES.RESOLVED
       value = result
-      while (deferredHandlers.length) {
-        var deferred = deferredHandlers.shift()
-        if (isPromise(result)) {
-          onResolve(result, deferred.resolve, deferred.reject)
-        }
-        else {
-          deferred.resolve(result)
-        }
-      }
+      resolveAll(deferredHandlers, result, self)
     })
 
     var reject = onFullfilled(function (error) {
       if (state !== STATES.PENDING) { return }
       state = STATES.REJECTED
       value = error
-      while (deferredHandlers.length) {
-        var deferred = deferredHandlers.shift()
-        deferred.reject(error)
-      }
+      rejectAll(deferredHandlers, error)
     })
 
     try { fn(resolve, reject) }
