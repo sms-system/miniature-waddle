@@ -26,13 +26,13 @@ var PPromise = (function () {
       if (typeof thenResolver !== 'function') {
         thenResolver = function () { return value }
       }
-      if (typeof thenRejector !== 'function') {
-        thenRejector = function () { return value }
-      }
 
-      return new Promise(function (resolve) {
+      return new Promise(function (resolve, reject) {
         resolveHandler = function (result) { resolve(thenResolver(result)) }
-        rejectHandler = function (result) { resolve(thenRejector(result)) }
+        rejectHandler = function (result) {
+          if (typeof thenRejector !== 'function') { reject(result) }
+          else { resolve(thenRejector(result)) }
+        }
 
         if (state === STATES.RESOLVED) {
           if (isPromise(value)) { onResolve(value, resolveHandler) }
