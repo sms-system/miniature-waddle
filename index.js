@@ -28,7 +28,14 @@ var PPromise = (function () {
       }
 
       return new Promise(function (resolve, reject) {
-        resolveHandler = function (result) { resolve(thenResolver(result)) }
+        resolveHandler = function (result) {
+          try {
+            var thenResult = thenResolver(result)
+            resolve(thenResult)
+          } catch (error) {
+            reject(error)
+          }
+        }
         rejectHandler = function (result) {
           if (typeof thenRejector !== 'function') { reject(result) }
           else { resolve(thenRejector(result)) }
