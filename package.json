@@ -1,0 +1,13 @@
+{
+  "name": "homework-js",
+  "version": "1.0.0",
+  "main": "index.js",
+  "author": "Serge Smirnov <sms-system@shri2018.yaconnect.com>",
+  "license": "MIT",
+  "scripts": {
+    "test": "promises-aplus-tests spec/aplus-adapter"
+  },
+  "devDependencies": {
+    "promises-aplus-tests": "^2.1.2"
+  }
+}

@@ -80,5 +80,9 @@ var PPromise = (function () {
     return new Promise(function (_, reject) { reject(value) })
   }
 
+  if (typeof module === 'object' && module.exports) {
+    module.exports = Promise
+  }
+
   return Promise
 })()
