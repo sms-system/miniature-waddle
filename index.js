@@ -4,7 +4,10 @@ var PPromise = (function () {
   var STATES = { PENDING: 0, RESOLVED: 1, REJECTED: 2 }
 
   function getThenable (val) {
-    if (typeof val !== 'object' && typeof val !== 'function') {
+    if (
+      (typeof val !== 'object' && typeof val !== 'function') ||
+      val === null
+    ) {
       return { isThenable: false }
     }
     try {
@@ -21,21 +24,25 @@ var PPromise = (function () {
     }
   }
 
-  function onFullfilled (fn) {
+  function onNextTick (fn) {
     return function (val) {
       setTimeout(function () { fn(val) }, 0)
     }
   }
 
-  function resoveThenable ({ self, then, value, deferred }) {
-    then.call(
-      value,
-      function (value) {
-        var thenable = getThenable(value)
-        applyResolver (deferred, thenable, value, self)
-      },
-      deferred.reject
-    )
+  function resoveThenable ({ self, then, thenable, deferred }) {
+    try {
+      then.call(
+        thenable,
+        function (value) {
+          var thenable = getThenable(value)
+          applyResolver (deferred, thenable, value, self)
+        },
+        deferred.reject
+      )
+    } catch (err) {
+      deferred.reject(err)
+    }
   }
 
   function applyResolver (deferred, thenable, result, currentInstance) {
@@ -48,7 +55,7 @@ var PPromise = (function () {
         resoveThenable({
           self: currentInstance,
           then: thenable.value,
-          value: result,
+          thenable: result,
           deferred
         })
       }
@@ -91,7 +98,7 @@ var PPromise = (function () {
 
       return new Promise(function (resolve, reject) {
         deferredHandlers.push({
-          resolve: onFullfilled(function (result) {
+          resolve: onNextTick(function (result) {
             try {
               var thenResult = thenResolver(result)
               resolve(thenResult)
@@ -99,7 +106,7 @@ var PPromise = (function () {
               reject(error)
             }
           }),
-          reject: onFullfilled(function (result) {
+          reject: onNextTick(function (result) {
             try {
               if (typeof thenRejector !== 'function') { reject(result) }
               else { resolve(thenRejector(result)) }
@@ -121,14 +128,14 @@ var PPromise = (function () {
 
     this.catch = function (thenRejector) { return this.then(null, thenRejector) }
 
-    var resolve = onFullfilled(function (result) {
+    var resolve = onNextTick(function (result) {
       if (state !== STATES.PENDING) { return }
       state = STATES.RESOLVED
       value = result
       resolveAll(deferredHandlers, result, self)
     })
 
-    var reject = onFullfilled(function (error) {
+    var reject = onNextTick(function (error) {
       if (state !== STATES.PENDING) { return }
       state = STATES.REJECTED
       value = error
