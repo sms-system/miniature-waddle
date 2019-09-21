@@ -26,7 +26,7 @@ var PPromise = (function () {
     }
 
     var state = STATES.PENDING, value
-    var resolveHandler, rejectHandler
+    var deferredHandlers = []
 
     this.then = function (thenResolver, thenRejector) {
       if (typeof thenResolver !== 'function') {
@@ -34,24 +34,36 @@ var PPromise = (function () {
       }
 
       return new Promise(function (resolve, reject) {
-        resolveHandler = onFullfilled(function (result) {
-          try {
-            var thenResult = thenResolver(result)
-            resolve(thenResult)
-          } catch (error) {
-            reject(error)
-          }
+        deferredHandlers.push({
+          resolve: onFullfilled(function (result) {
+            try {
+              var thenResult = thenResolver(result)
+              resolve(thenResult)
+            } catch (error) {
+              reject(error)
+            }
+          }),
+          reject: onFullfilled(function (result) {
+            if (typeof thenRejector !== 'function') { reject(result) }
+            else { resolve(thenRejector(result)) }
+          })
         })
-        rejectHandler = onFullfilled(function (result) {
-          if (typeof thenRejector !== 'function') { reject(result) }
-          else { resolve(thenRejector(result)) }
-        })
+        if (state === STATES.PENDING) { return }
 
-        if (state === STATES.RESOLVED) {
-          if (isPromise(value)) { onResolve(value, resolveHandler, rejectHandler) }
-          else { resolveHandler(value) }
+        while (deferredHandlers.length) {
+          var deferred = deferredHandlers.shift()
+          if (state === STATES.RESOLVED) {
+            if (isPromise(value)) {
+              onResolve(value, deferred.resolve, deferred.reject)
+            }
+            else {
+              deferred.resolve(value)
+            }
+          }
+          if (state === STATES.REJECTED) {
+            deferred.reject(value)
+          }
         }
-        if (state === STATES.REJECTED) { rejectHandler(value) }
       })
     }
 
@@ -61,9 +73,14 @@ var PPromise = (function () {
       if (state !== STATES.PENDING) { return }
       state = STATES.RESOLVED
       value = result
-      if (resolveHandler) {
-        if (isPromise(result)) { onResolve(result, resolveHandler, rejectHandler) }
-        else { resolveHandler(result) }
+      while (deferredHandlers.length) {
+        var deferred = deferredHandlers.shift()
+        if (isPromise(result)) {
+          onResolve(result, deferred.resolve, deferred.reject)
+        }
+        else {
+          deferred.resolve(result)
+        }
       }
     })
 
@@ -71,7 +88,10 @@ var PPromise = (function () {
       if (state !== STATES.PENDING) { return }
       state = STATES.REJECTED
       value = error
-      if (rejectHandler) { rejectHandler(error) }
+      while (deferredHandlers.length) {
+        var deferred = deferredHandlers.shift()
+        deferred.reject(error)
+      }
     })
 
     try { fn(resolve, reject) }
