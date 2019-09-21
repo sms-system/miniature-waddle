@@ -3,8 +3,8 @@
 var PPromise = (function () {
   var STATES = { PENDING: 0, RESOLVED: 1, REJECTED: 2 }
 
-  function onResolve (promise, callback) {
-    promise.then(function (res) { callback(res) })
+  function onResolve (promise, onSuccess, onError) {
+    promise.then(onSuccess, onError)
   }
 
   function isPromise (val) {
@@ -35,13 +35,10 @@ var PPromise = (function () {
         }
 
         if (state === STATES.RESOLVED) {
-          if (isPromise(value)) { onResolve(value, resolveHandler) }
+          if (isPromise(value)) { onResolve(value, resolveHandler, rejectHandler) }
           else { resolveHandler(value) }
         }
-
-        if (state === STATES.REJECTED) {
-          rejectHandler(value)
-        }
+        if (state === STATES.REJECTED) { rejectHandler(value) }
       })
     }
 
@@ -52,7 +49,7 @@ var PPromise = (function () {
       state = STATES.RESOLVED
       value = result
       if (resolveHandler) {
-        if (isPromise(result)) { onResolve(result, resolveHandler) }
+        if (isPromise(result)) { onResolve(result, resolveHandler, rejectHandler) }
         else { resolveHandler(result) }
       }
     }
@@ -61,9 +58,7 @@ var PPromise = (function () {
       if (state !== STATES.PENDING) { return }
       state = STATES.REJECTED
       value = error
-      if (rejectHandler) {
-        rejectHandler(error)
-      }
+      if (rejectHandler) { rejectHandler(error) }
     }
 
     try { fn(resolve, reject) }
