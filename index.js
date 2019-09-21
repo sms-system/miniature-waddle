@@ -44,8 +44,12 @@ var PPromise = (function () {
             }
           }),
           reject: onFullfilled(function (result) {
-            if (typeof thenRejector !== 'function') { reject(result) }
-            else { resolve(thenRejector(result)) }
+            try {
+              if (typeof thenRejector !== 'function') { reject(result) }
+              else { resolve(thenRejector(result)) }
+            } catch (error) {
+              reject(error)
+            }
           })
         })
         if (state === STATES.PENDING) { return }
