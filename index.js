@@ -30,7 +30,11 @@ var PPromise = (function () {
     }
   }
 
-  function resoveThenable ({ self, then, thenable, deferred }) {
+  function resoveThenable (args) {
+    var self = args.self
+    var then = args.then
+    var thenable = args.thenable
+    var deferred = args.deferred
     var isFullfilled = false
     try {
       then.call(
@@ -65,7 +69,7 @@ var PPromise = (function () {
           self: currentInstance,
           then: thenable.value,
           thenable: result,
-          deferred
+          deferred: deferred
         })
       }
     } else {
