@@ -74,10 +74,10 @@ var PPromise = (function () {
 
   var Promise = function (fn) {
     if (!(this instanceof Promise)) {
-      throw new Error('Missed "new" operator')
+      throw new TypeError('Missed "new" operator')
     }
     if (typeof fn !== 'function') {
-      throw new Error('Promise argument must be a function')
+      throw new TypeError('Promise resolver is not a function')
     }
 
     var state = STATES.PENDING, value
