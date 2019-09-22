@@ -174,6 +174,7 @@
   if (typeof global === 'object' && typeof global.exports === 'object' && global) {
     global.exports = Promise
   } else {
+    global.PPromise = Promise
     try {
       if (
         global.Promise &&
@@ -181,7 +182,7 @@
       ) { return }
     }
     catch (err) { }
-    global.PPromise = Promise
+    global.Promise = Promise
   }
 })(
   (typeof module === 'object' && typeof module.exports === 'object' && module) ||
