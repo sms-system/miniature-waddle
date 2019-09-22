@@ -141,6 +141,18 @@
 
     this.catch = function (thenRejector) { return this.then(null, thenRejector) }
 
+    this.finally = function (callback) {
+      var handler = function (correctlyResolved) {
+        return function (value) {
+          try { callback() }
+          catch (err) { throw err }
+          if (correctlyResolved) { return value }
+          else { throw value }
+        }
+      }
+      return this.then(handler(true), handler(false))
+    }
+
     var resolve = onNextTick(function (result) {
       if (state !== STATES.PENDING) { return }
       state = STATES.RESOLVED
