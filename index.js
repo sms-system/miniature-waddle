@@ -104,7 +104,7 @@
     var deferredHandlers = []
     var self = this
 
-    this.then = function (thenResolver, thenRejector) {
+    var thenWithOpt = function (thenResolver, thenRejector, throwErrors) {
       if (typeof thenResolver !== 'function') {
         thenResolver = function () { return value }
       }
@@ -117,6 +117,7 @@
               resolve(thenResult)
             } catch (error) {
               reject(error)
+              if (throwErrors) { throw error }
             }
           }),
           reject: onNextTick(function (result) {
@@ -125,6 +126,7 @@
               else { resolve(thenRejector(result)) }
             } catch (error) {
               reject(error)
+              if (throwErrors) { throw error }
             }
           })
         })
@@ -139,6 +141,8 @@
       })
     }
 
+    this.then = function (onSuccess, onError) { return thenWithOpt(onSuccess, onError) }
+
     this.catch = function (thenRejector) { return this.then(null, thenRejector) }
 
     this.finally = function (callback) {
@@ -151,6 +155,14 @@
         }
       }
       return this.then(handler(true), handler(false))
+    }
+
+    this.done = function (onSuccess, onError) {
+      thenWithOpt(function (value) {
+        onSuccess(value)
+      }, function (error) {
+        onError(error)
+      }, true)
     }
 
     var resolve = onNextTick(function (result) {
