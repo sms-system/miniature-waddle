@@ -1,6 +1,6 @@
-'use strict'
+'use strict';
 
-var PPromise = (function () {
+(function(global) {
   var STATES = { PENDING: 0, RESOLVED: 1, REJECTED: 2 }
 
   function getThenable (val) {
@@ -167,9 +167,24 @@ var PPromise = (function () {
     return new Promise(function (_, reject) { reject(value) })
   }
 
-  if (typeof module === 'object' && module.exports) {
-    module.exports = Promise
+  Promise.prototype.toString = function () {
+    return '[object Promise]'
   }
 
-  return Promise
-})()
+  if (typeof global === 'object' && typeof global.exports === 'object' && global) {
+    global.exports = Promise
+  } else {
+    try {
+      if (
+        global.Promise &&
+        getThenable(new global.Promise(function () {})).isThenable
+      ) { return }
+    }
+    catch (err) { }
+    global.PPromise = Promise
+  }
+})(
+  (typeof module === 'object' && typeof module.exports === 'object' && module) ||
+  (typeof window === 'object' && window.window === window && window) ||
+  this
+)
