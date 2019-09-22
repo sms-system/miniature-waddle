@@ -171,6 +171,29 @@
     return '[object Promise]'
   }
 
+  Promise.all = function (array) {
+    function resolveFromQueue (resolved, value, queue, resolver) {
+      resolved.push(value)
+      if (resolved.length === queue.length) {
+        resolver(resolved)
+      }
+    }
+
+    return new Promise(function(resolve, reject) {
+      var resolved = []
+      for (var i = 0; i < array.length; i++) {
+        var thenable = getThenable(array[i])
+        if (thenable.isThenable) {
+          array[i].then(function (result) {
+            resolveFromQueue (resolved, result, array, resolve)
+          }, function (err) { reject(err) })
+        } else {
+          resolveFromQueue (resolved, array[i], array, resolve)
+        }
+      }
+    })
+  }
+
   if (typeof global === 'object' && typeof global.exports === 'object' && global) {
     global.exports = Promise
   } else {
