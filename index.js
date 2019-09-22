@@ -194,6 +194,16 @@
     })
   }
 
+  Promise.race = function (array) {
+    return new Promise(function(resolve, reject) {
+      for (var i = 0; i < array.length; i++) {
+        var thenable = getThenable(array[i])
+        if (thenable.isThenable) { array[i].then(resolve, reject) }
+        else { resolve(array[i]) }
+      }
+    })
+  }
+
   if (typeof global === 'object' && typeof global.exports === 'object' && global) {
     global.exports = Promise
   } else {
