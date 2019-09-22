@@ -36,11 +36,33 @@
 			throw  num  +  1
 		})
 		.then((num)  =>  {
-			console.log('Not appeared') // Not will be displayed
+			console.log('Not appeared') // Will not be displayed
 		})
 		.catch((num)  =>  {
 			console.log('Thrown number',num ) // 25
 		})
+
+## Реализация метода done
+
+Метод `done` не является стандартизированным поведением промисов. В данной реализации вызов `done` у промиса похож на вызов метода `then`, с той лишь разницей, что вызов методов далее по цепочке перестанет работать. А также, необработанные ошибки внутри промиса приведут к появлению необрабатываемого исключения.
+
+Пример:
+
+	const  promise  =  PPromise.resolve(1)
+
+	const notChain = promise
+		.then(() => { throw 'ERROR' })
+		.done((value) => {
+			console.log('RESULT', value) // Will not be displayed, because of promise error. Unhandled Error ('ERROR') will be thrown
+		})
+
+	try {
+		notChain
+		  .then((value) => { console.log(value) }) // Will not be executed, because promise ended
+	} catch (err) {
+		console.log(err) // TypeError: Cannot read property 'then' of undefined
+	}
+
 
 ## Отличия в работе от нативного Promise
 

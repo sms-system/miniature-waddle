@@ -159,9 +159,15 @@
 
     this.done = function (onSuccess, onError) {
       thenWithOpt(function (value) {
-        onSuccess(value)
+        if (typeof onSuccess === 'function') {
+          onSuccess(value)
+        }
       }, function (error) {
-        onError(error)
+        if (typeof onError === 'function') {
+          onError(error)
+        } else {
+          throw error
+        }
       }, true)
     }
 
